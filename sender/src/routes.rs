@@ -5,17 +5,21 @@ use axum::{
     body::Body,
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Response, sse::{Event, KeepAlive, Sse}},
+    response::{
+        IntoResponse, Response,
+        sse::{Event, KeepAlive, Sse},
+    },
     routing::{get, post},
 };
 use serde_json::json;
-use tokio_stream::{wrappers::BroadcastStream, StreamExt};
+use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 use tokio_util::io::ReaderStream;
 
 use crate::{
-    dtos::{ErrorResponse, MarketOffer, OfferAnnouncement, PublishOfferRequest, PublishOfferResponse},
-    market,
-    metadata,
+    dtos::{
+        ErrorResponse, MarketOffer, OfferAnnouncement, PublishOfferRequest, PublishOfferResponse,
+    },
+    market, metadata,
     state::AppState,
 };
 
@@ -24,7 +28,7 @@ pub fn app(state: AppState) -> Router {
         .route("/api/offer/publish", post(publish_offer))
         .route("/api/offer/latest", get(latest_offer))
         .route("/api/offer/subscribe", get(subscribe_offers))
-        .route("/api/files/*path", get(download_file))
+        .route("/api/files/{*path}", get(download_file))
         .route("/api/health", get(health))
         .with_state(state)
 }
@@ -79,18 +83,20 @@ async fn subscribe_offers(
     State(state): State<AppState>,
 ) -> Sse<impl tokio_stream::Stream<Item = Result<Event, std::convert::Infallible>>> {
     let receiver = state.announcer().subscribe();
-    let stream = BroadcastStream::new(receiver).filter_map(|message| {
-        match message {
-            Ok(offer) => {
-                let payload = serde_json::to_string(&offer)
-                    .unwrap_or_else(|_| json!({"error": "serialization failed"}).to_string());
-                Some(Ok(Event::default().data(payload)))
-            }
-            Err(_) => None,
+    let stream = BroadcastStream::new(receiver).filter_map(|message| match message {
+        Ok(offer) => {
+            let payload = serde_json::to_string(&offer)
+                .unwrap_or_else(|_| json!({"error": "serialization failed"}).to_string());
+            Some(Ok(Event::default().data(payload)))
         }
+        Err(_) => None,
     });
 
-    Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(15)).text("keep-alive"))
+    Sse::new(stream).keep_alive(
+        KeepAlive::new()
+            .interval(Duration::from_secs(15))
+            .text("keep-alive"),
+    )
 }
 
 async fn download_file(
