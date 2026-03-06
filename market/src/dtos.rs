@@ -16,3 +16,14 @@ pub struct Offer {
 pub struct CreateOfferResponse {
     pub offer_id: String,
 }
+
+#[derive(Deserialize)]
+pub struct DeleteOfferRequest {
+    pub address: String,
+    pub item: String,
+}
+
+#[derive(Serialize)]
+pub struct DeleteOfferResponse {
+    pub deleted: bool,
+}
