@@ -29,11 +29,15 @@ async fn main() {
 async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let state = store::AppState::new(store::OfferStore::default());
     let app = routes::app(state);
+    // How to implement cookie session in rust?
+    //
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     let listener = TcpListener::bind(addr).await?;
+    listener.set_ttl(34)?;
 
     println!("Server running on http://{}", addr);
+    println!("Server TTL is : {:?}", listener.ttl());
     axum::serve(listener, app).await?;
 
     Ok(())
