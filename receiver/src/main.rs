@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-#[command(name = "receiver", about = "Fetch offers from the market and download data from a sender")]
+#[command(
+    name = "receiver",
+    about = "Fetch offers from the market and download data from a sender"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

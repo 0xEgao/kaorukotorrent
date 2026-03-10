@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use tokio::sync::{broadcast, RwLock};
-
 use crate::{config::Config, dtos::OfferAnnouncement};
+use tokio::sync::{RwLock, broadcast};
 
 #[derive(Clone)]
 pub struct AppState {
