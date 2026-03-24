@@ -17,12 +17,17 @@ pub struct FileEntry {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ItemMetadata {
     pub item: String,
+    pub root_path: String,
     pub info_hash: String,
     pub total_size: u64,
     pub files: Vec<FileEntry>,
 }
 
-pub fn build_metadata(item: &str, root: &Path) -> Result<ItemMetadata, MetadataError> {
+pub fn build_metadata(
+    item: &str,
+    root_path: &str,
+    root: &Path,
+) -> Result<ItemMetadata, MetadataError> {
     let mut files = Vec::new();
     if !root.exists() {
         return Err(MetadataError::new("item path does not exist"));
@@ -35,7 +40,12 @@ pub fn build_metadata(item: &str, root: &Path) -> Result<ItemMetadata, MetadataE
     let mut total_size = 0u64;
 
     for entry in &files {
-        let file_path = root.join(&entry.path);
+        // For single-file items, relative path can be empty; hash the root file directly.
+        let file_path = if entry.path.is_empty() {
+            root.to_path_buf()
+        } else {
+            root.join(&entry.path)
+        };
         total_size = total_size.saturating_add(entry.size);
         hasher.update(entry.path.as_bytes());
         hasher.update(entry.size.to_le_bytes());
@@ -46,6 +56,7 @@ pub fn build_metadata(item: &str, root: &Path) -> Result<ItemMetadata, MetadataE
 
     Ok(ItemMetadata {
         item: item.to_string(),
+        root_path: root_path.to_string(),
         info_hash,
         total_size,
         files,
@@ -196,10 +207,27 @@ mod tests {
         fs::write(&file_a, b"hello").expect("write file a");
         fs::write(&file_b, b"world").expect("write file b");
 
-        let metadata = build_metadata("sample", &root).expect("metadata should build");
+        let metadata = build_metadata("sample", "sample", &root).expect("metadata should build");
 
         assert_eq!(metadata.total_size, 10);
         assert_eq!(metadata.files.len(), 2);
         assert_eq!(metadata.item, "sample");
+        assert_eq!(metadata.root_path, "sample");
+    }
+
+    #[test]
+    fn build_metadata_for_single_file_root() {
+        let root = make_temp_dir();
+        let file = root.join("single.bin");
+        fs::write(&file, b"single-file").expect("write single file");
+
+        let metadata =
+            build_metadata("single", "nested/single.bin", &file).expect("metadata should build");
+
+        assert_eq!(metadata.total_size, 11);
+        assert_eq!(metadata.files.len(), 1);
+        assert_eq!(metadata.files[0].path, "");
+        assert_eq!(metadata.item, "single");
+        assert_eq!(metadata.root_path, "nested/single.bin");
     }
 }

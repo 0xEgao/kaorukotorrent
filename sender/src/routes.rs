@@ -40,7 +40,7 @@ async fn publish_offer(
     let item_path = body.item_path.as_deref().unwrap_or(&body.item);
     let full_path = metadata::resolve_item_path(&state.config.data_dir, item_path)?;
 
-    let item_metadata = metadata::build_metadata(&body.item, &full_path)?;
+    let item_metadata = metadata::build_metadata(&body.item, item_path, &full_path)?;
     let item_info = serde_json::to_string(&item_metadata)
         .map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
 

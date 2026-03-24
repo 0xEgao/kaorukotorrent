@@ -344,8 +344,10 @@ function ReceiverPage() {
             <ul className="file-list">
               {files.map((entry) => {
                 const rel = String(entry.path || '').replace(/^\/+/, '');
-                const itemRoot = String(selectedOffer.item || '').replace(/\/+$/, '');
-                const resource = rel ? `${itemRoot}/${rel}` : itemRoot;
+                const itemRoot = String(
+                  metadata?.root_path || selectedOffer.item || ''
+                ).replace(/^\/+|\/+$/g, '');
+                const resource = rel ? (itemRoot ? `${itemRoot}/${rel}` : rel) : itemRoot;
                 const href = `${selectedOffer.address.replace(/\/+$/, '')}/api/files/${resource}`;
 
                 return (
